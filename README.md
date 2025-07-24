@@ -8,8 +8,8 @@ WCH製 RISC-Vマイコン CH32V003の評価F/W個人開発リポジトリ
 - 基板
   - `CH32V003F4P6-R0-1V1`
 
-- マイコン ... 型番:[`CH32V003F4P6`](https://akizukidenshi.com/catalog/g/g118061/)🔗
-  - CPU ... `QingKeV2` (32bit RV32EC RISC-V)
+- マイコン ... 型番:[CH32V003F4P6](https://akizukidenshi.com/catalog/g/g118061/)🔗
+  - CPU ... [QingKeV2 (32bit RV32EC RISC-V)](https://wch-ic.com/downloads/QingKeV2_Processor_Manual_PDF.html)🔗
   - ROM ... 16KB
   - RAM ... 2KB
   - Clock ... 48MHz
@@ -23,8 +23,11 @@ WCH製 RISC-Vマイコン CH32V003の評価F/W個人開発リポジトリ
 
 ### S/W
 
-- [`MounRiver Studio (MRS) V2.20`](https://www.mounriver.com/download)🔗
+- IDE/SDK/コンパイラ
+  - [MounRiver Studio (MRS) V2.20](https://www.mounriver.com/download)🔗
+- 実装ベース
+  - [CH32V003EVT V2.1](https://www.wch.cn/downloads/CH32V003EVT_ZIP.html)🔗
 
 ### デバッガ
 
-- [`WCH-LinkE Ver1.3`](https://akizukidenshi.com/catalog/g/g118065)🔗
+- [WCH-LinkE Ver1.3](https://akizukidenshi.com/catalog/g/g118065)🔗
