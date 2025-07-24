@@ -67,7 +67,8 @@ int main(void)
 
     while(1)
     {
-        Delay_Ms(250);
+        Delay_Ms(500);
         GPIO_WriteBit(GPIOD, GPIO_Pin_0, (i == 0) ? (i = Bit_SET) : (i = Bit_RESET));
+        printf("GPIO PD0 Pin = %d\r\n", i);
     }
 }

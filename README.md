@@ -5,8 +5,8 @@ WCH製 RISC-Vマイコン CH32V003の評価F/W個人開発リポジトリ
 
 ### H/W
 
-- 基板
-  - `CH32V003F4P6-R0-1V1`
+- 評価基板
+  - `CH32V003EVT(CH32V003F4P6-R0-1V1)`
 
 - マイコン ... 型番:[CH32V003F4P6](https://akizukidenshi.com/catalog/g/g118061/)🔗
   - CPU ... [QingKeV2 (32bit RV32EC RISC-V)](https://wch-ic.com/downloads/QingKeV2_Processor_Manual_PDF.html)🔗
@@ -31,3 +31,19 @@ WCH製 RISC-Vマイコン CH32V003の評価F/W個人開発リポジトリ
 ### デバッガ
 
 - [WCH-LinkE Ver1.3](https://akizukidenshi.com/catalog/g/g118065)🔗
+
+### デバッグ
+
+#### SWD
+
+- [WCH-LinkE <--> 評価基板]
+  - SWDIO <--> PD1ピン
+  - GND <--> GND
+
+#### UART
+
+実装ベースはprintf()をUART1にポーティングのみでTXしかできない
+
+- [WCH-LinkE <--> 評価基板]
+  - RX <--> PD5ピン(TX)
+  - GND <--> GND
