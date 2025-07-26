@@ -23,13 +23,27 @@
  */
 
 #include "debug.h"
+#include <string.h>
+#include <stdint.h>
 
+// UARTデータ構造体
+typedef struct {
+    uint8_t rx_cnt;
+    uint8_t tx_cnt;
+    uint8_t *p_rx_buf;
+    uint8_t *p_tx_buf;
+    uint8_t rx_buf_size;
+    uint8_t tx_buf_size;
+    uint8_t rx_idx;
+    uint8_t tx_idx;
+} uart_data_t;
 
-/* Global define */
+static uart_data_t s_uart_data;
 
+uint8_t g_uart_rx_buf[256]; // UART受信リングバッファ
+uint8_t g_uart_tx_buf[256]; // UART送信リングバッファ
 
-/* Global Variable */
-vu8 val;
+static void hw_uart_init(void);
 
 /*********************************************************************
  * @fn      USARTx_CFG
@@ -65,18 +79,23 @@ void USARTx_CFG(void)
     USART_Cmd(USART1, ENABLE);
 }
 
-/*********************************************************************
- * @fn      main
- *
- * @brief   Main program.
- *
- * @return  none
+/**
+ * @brief UART初期化
+ * 
  */
-int main(void)
+static void hw_uart_init(void)
 {
-    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
-    SystemCoreClockUpdate();
-    Delay_Init();
+    memset(&g_uart_rx_buf, 0x00, sizeof(g_uart_rx_buf));
+    memset(&g_uart_tx_buf, 0x00, sizeof(g_uart_tx_buf));
+    s_uart_data.p_rx_buf = &g_uart_rx_buf[0];
+    s_uart_data.p_tx_buf = &g_uart_tx_buf[0];
+    s_uart_data.rx_buf_size = (uint8_t)sizeof(g_uart_rx_buf);
+    s_uart_data.tx_buf_size = (uint8_t)sizeof(g_uart_tx_buf);
+    s_uart_data.rx_cnt = 0;
+    s_uart_data.tx_cnt = 0;
+    s_uart_data.rx_idx = 0;
+    s_uart_data.tx_idx = 0;
+
 #if (SDI_PRINT == SDI_PR_OPEN)
     SDI_Printf_Enable();
 #else
@@ -86,19 +105,62 @@ int main(void)
     printf( "ChipID:%08x\r\n", DBGMCU_GetCHIPID() );
 
     USARTx_CFG();
+}
+
+void app_uart_main(void)
+{
+    uint8_t tmp;
+    uint8_t i;
+
+    // [UART受信]
+    // UARTの受信FIFOが空ではなかったらFIFO読み出し
+    if(USART_GetFlagStatus(USART1, USART_FLAG_RXNE) != SET) {
+        tmp = (USART_ReceiveData(USART1));
+        s_uart_data.p_rx_buf[s_uart_data.rx_idx] = tmp;
+        s_uart_data.rx_cnt++;
+        s_uart_data.rx_idx = (s_uart_data.rx_idx + 1) % s_uart_data.rx_buf_size;
+    }
+
+    // [UART送信]
+    // UARTの送信FIFOが空ではなかったらFIFOにデータを2Byte書き込み
+#if 1
+    if(USART_GetFlagStatus(USART1, USART_FLAG_TXE) != SET) {
+        if(s_uart_data.rx_cnt > 0) {
+            memcpy(&g_uart_tx_buf[0], &g_uart_rx_buf[0], s_uart_data.rx_cnt);
+            memset(&g_uart_rx_buf[0], 0x00, s_uart_data.rx_buf_size);
+            s_uart_data.tx_cnt = s_uart_data.rx_cnt;
+            s_uart_data.rx_cnt = 0;
+
+            // 受信したデータ分同じデータを送り返してローカルエコー
+            for(i = 0; i < s_uart_data.tx_cnt; i++)
+            {
+                USART_SendData(USART1, (uint16_t)s_uart_data.p_tx_buf[s_uart_data.tx_idx]);
+                s_uart_data.tx_idx = (s_uart_data.tx_idx + 1) % s_uart_data.tx_buf_size;
+            }
+            memset(&g_uart_tx_buf[0], 0x00, s_uart_data.tx_buf_size);
+            s_uart_data.tx_cnt = 0;
+        }
+    }
+#endif
+}
+
+/**
+ * @brief メインループ
+ * 
+ * @return int 
+ */
+int main(void)
+{
+    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
+    SystemCoreClockUpdate();
+    Delay_Init();
+
+    hw_uart_init();
 
     while(1)
     {
-
-        while(USART_GetFlagStatus(USART1, USART_FLAG_RXNE) == RESET)
-        {
-            /* waiting for receiving finish */
-        }
-        val = (USART_ReceiveData(USART1));
-        USART_SendData(USART1, ~val);
-        while(USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET)
-        {
-            /* waiting for sending finish */
-        }
+        app_uart_main();
     }
+
+    return 0;
 }
