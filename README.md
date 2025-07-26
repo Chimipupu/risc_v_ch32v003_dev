@@ -44,5 +44,5 @@ WCH製 RISC-Vマイコン CH32V003の評価F/W個人開発リポジトリ
 
 - [WCH-LinkE <--> 評価基板]
   - RX <--> PD5ピン(TX)
-  - RX <--> PD6ピン(RX)
+  - TX <--> PD6ピン(RX)
   - GND <--> GND

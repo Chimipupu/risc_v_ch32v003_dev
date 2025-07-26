@@ -40,8 +40,8 @@ typedef struct {
 
 static uart_data_t s_uart_data;
 
-uint8_t g_uart_rx_buf[256]; // UART受信リングバッファ
-uint8_t g_uart_tx_buf[256]; // UART送信リングバッファ
+uint8_t g_uart_rx_buf[128]; // UART受信リングバッファ
+uint8_t g_uart_tx_buf[128]; // UART送信リングバッファ
 
 static void hw_uart_init(void);
 
@@ -56,6 +56,7 @@ void USARTx_CFG(void)
 {
     GPIO_InitTypeDef  GPIO_InitStructure = {0};
     USART_InitTypeDef USART_InitStructure = {0};
+    NVIC_InitTypeDef  NVIC_InitStructure = {0};
 
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOD | RCC_APB2Periph_USART1, ENABLE);
 
@@ -76,6 +77,14 @@ void USARTx_CFG(void)
     USART_InitStructure.USART_Mode = USART_Mode_Tx | USART_Mode_Rx;
 
     USART_Init(USART1, &USART_InitStructure);
+    USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
+
+    NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
+    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&NVIC_InitStructure);;
+
     USART_Cmd(USART1, ENABLE);
 }
 
@@ -96,6 +105,7 @@ static void hw_uart_init(void)
     s_uart_data.rx_idx = 0;
     s_uart_data.tx_idx = 0;
 
+#if 0
 #if (SDI_PRINT == SDI_PR_OPEN)
     SDI_Printf_Enable();
 #else
@@ -103,29 +113,17 @@ static void hw_uart_init(void)
 #endif
     printf("SystemClk:%d\r\n",SystemCoreClock);
     printf( "ChipID:%08x\r\n", DBGMCU_GetCHIPID() );
+#endif
 
     USARTx_CFG();
 }
 
 void app_uart_main(void)
 {
-    uint8_t tmp;
     uint8_t i;
 
-    // [UART受信]
-    // UARTの受信FIFOが空ではなかったらFIFO読み出し
-    if(USART_GetFlagStatus(USART1, USART_FLAG_RXNE) != SET) {
-        tmp = (USART_ReceiveData(USART1));
-        s_uart_data.p_rx_buf[s_uart_data.rx_idx] = tmp;
-        s_uart_data.rx_cnt++;
-        s_uart_data.rx_idx = (s_uart_data.rx_idx + 1) % s_uart_data.rx_buf_size;
-    }
-
-    // [UART送信]
-    // UARTの送信FIFOが空ではなかったらFIFOにデータを2Byte書き込み
-#if 1
-    if(USART_GetFlagStatus(USART1, USART_FLAG_TXE) != SET) {
-        if(s_uart_data.rx_cnt > 0) {
+    if(s_uart_data.rx_cnt > 0) {
+        if(USART_GetFlagStatus(USART1, USART_FLAG_TXE) == SET) {
             memcpy(&g_uart_tx_buf[0], &g_uart_rx_buf[0], s_uart_data.rx_cnt);
             memset(&g_uart_rx_buf[0], 0x00, s_uart_data.rx_buf_size);
             s_uart_data.tx_cnt = s_uart_data.rx_cnt;
@@ -141,7 +139,6 @@ void app_uart_main(void)
             s_uart_data.tx_cnt = 0;
         }
     }
-#endif
 }
 
 /**
@@ -163,4 +160,24 @@ int main(void)
     }
 
     return 0;
+}
+
+void USART1_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
+
+/**
+ * @brief USART1 割り込みハンドラ
+ * 
+ */
+void USART1_IRQHandler(void)
+{
+    uint8_t tmp;
+
+    // [UART受信]
+    // UARTの受信FIFOが空ではなかったらFIFO読み出し
+    if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET) {
+        tmp = (USART_ReceiveData(USART1));
+        s_uart_data.p_rx_buf[s_uart_data.rx_idx] = tmp;
+        s_uart_data.rx_cnt++;
+        s_uart_data.rx_idx = (s_uart_data.rx_idx + 1) % s_uart_data.rx_buf_size;
+    }
 }
